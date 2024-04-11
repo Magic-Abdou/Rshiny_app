@@ -1,0 +1,209 @@
+---
+title: "SCRIPT ANTOINE"
+author: "Abdou NIANG"
+date: "2024-03-20"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+
+Les colonnes dont Antoine a besoin pour l'instant pour un premier graphe :
+
+dateTime : Temps en GMT ( à modifier )
+e1       : Mesure electrode 1
+e2       : Mesure electrode 2
+temp     : Température corporelle
+hum      : Humidité de la pièce
+
+
+
+
+```{r}
+library(lubridate)
+data <-  read.csv("full_data_session.csv", sep = ";")
+head(data)
+```
+
+```{r}
+colnames(data)
+```
+
+
+Selectionner les colonnes du tableau qui nous intÃ©ressent : 
+
+
+```{r}
+data = data[, c("dateTime", "c1", "c2", "temp", "hum")]
+
+head(data)
+
+```
+
+```{r}
+
+data$dateTime <- gsub("Thu |GMT\\+0000 \\(Coordinated Universal Time\\)", "", data$dateTime)
+
+head(data$dateTime)
+
+
+```
+
+
+
+
+      
+
+
+
+```{r}
+
+library(lubridate)
+
+
+
+data$dateTime <- parse_date_time(data$dateTime , "%b %d %Y %H:%M:%S", locale = "en") # Convertir en objet de type temps
+
+
+head(data$dateTime)
+
+class(data$dateTime)
+```
+
+Illisble ! Prenons une donnee toutes les 5 secondes pour mieux tracer. Nous obtenons un nouveau dataset.
+
+
+```{r, fig.width=20, fig.height=12}
+library(ggplot2)
+
+
+data_5s = data[seq(1, nrow(data), by = 60), ]
+
+# Plotting
+ggplot(data_5s, aes(x = dateTime)) +
+  geom_line(aes(y = temp, color = "Humidite")) +
+  labs(x = "Temps", y = "valeur",color = "Variable") +
+  scale_x_datetime(date_labels = "%H:%M:%S") +
+  theme_minimal()
+
+```
+
+```{r,fig.width=20, fig.height=12}
+
+library(ggplot2)
+library(gridExtra)
+p1 <- ggplot(data_5s, aes(x = dateTime, y = temp)) +
+  geom_line(color = "blue") +
+  labs(x = "Temps", y = "Temperature", title = "Temperature en fonction du temps") +
+  theme_minimal()
+
+
+p2 <- ggplot(data_5s, aes(x = dateTime, y = hum)) +
+  geom_line(color = "red") +
+  labs(x = "Temps", y = "Humidite", title = "Humidite fonction du temps") +
+  theme_minimal()
+
+# Arrange plots in a grid
+grid.arrange(p1, p2, ncol =2)
+```
+
+
+
+```{r, fig.width=20, fig.height=12}
+
+ggplot(data_5s, aes(x = dateTime)) +
+  
+ 
+  geom_line(aes(y = c1, color = "e1")) +
+  
+  
+  geom_line(aes(y = c2, color = "e2")) +
+  
+  
+  labs(x = "Temps", y = "tension en volt", color = "Variables", title = "e1 et e2 superposés") +
+  
+  
+  theme_minimal()
+```
+
+
+
+```{r, fig.width=20, fig.height=12}
+
+
+library(changepoint)
+
+e
+cpt_result <- cpt.mean(data_5s$c2)
+
+
+plot(cpt_result)
+
+```
+
+```{r}
+cpt_result@date
+```
+
+
+
+
+
+```{r}
+
+library(changepoint)
+library(knitr)
+
+
+# Create an object of type "cpt.meanvar" to detect changes in mean/variance
+cpt_result <- cpt.meanvar(data_5s$c1, method = "PELT", Q = 10, minseglen = 1)
+
+# Get the changepoints
+changepoints <- cpt_result@cpts
+
+# changepoints
+changepoint_timestamps <- data_5s$dateTime[changepoints]
+print(changepoint_timestamps)
+
+```
+
+
+
+
+Tracé des points de ruptures 
+
+```{r}
+cpt_result@cpts
+```
+
+
+
+```{r, fig.width=15, fig.height=7}
+# 
+plot(data_5s$dateTime, data_5s$c1, type = "l", xlab = "Time", ylab = "c1")
+
+# Lignes verticales symbolisant les ruptures
+abline(v = changepoint_timestamps, col = "red", lty = 2)
+
+# Add legend
+legend("topright", legend = "Ruptures", col = "red", lty = 2)
+```
+
+
+
+
+```{r}
+
+```
+
+
+
+
+
+
+
+
+
